@@ -177,6 +177,7 @@ nav a.active { background: var(--accent); }
 }
 .nav-search-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
 .nav-search-btn.active { color: var(--accent); }
+.tag-bar { display: none; } /* removed — tags now inside search dropdown */
 .search-dropdown {
   position: absolute;
   top: 100%;
@@ -186,17 +187,25 @@ nav a.active { background: var(--accent); }
   border-top: 1px solid rgba(255,255,255,0.12);
   border-bottom: 2px solid var(--accent);
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px;
+  flex-direction: column;
   height: 0;
   overflow: hidden;
-  transition: height 0.28s ease;
+  transition: height 0.3s ease;
   z-index: 199;
   box-sizing: border-box;
 }
 .search-dropdown.open {
-  height: 46px;
+  height: 88px;
+}
+.search-input-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 44px;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 .search-dropdown-bg {
   position: absolute;
@@ -223,6 +232,8 @@ nav a.active { background: var(--accent); }
   color: rgba(255,255,255,0.35);
   font-size: 15px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 .search-dropdown input {
   flex: 1;
@@ -244,9 +255,7 @@ nav a.active { background: var(--accent); }
   vertical-align: middle;
 }
 .search-dropdown input::placeholder { color: rgba(255,255,255,0.35); -webkit-text-fill-color: rgba(255,255,255,0.35); opacity: 1; }
-.search-dropdown input:focus {
-  caret-color: rgba(245,240,232,0.75);
-}
+.search-dropdown input:focus { caret-color: rgba(245,240,232,0.75); }
 .search-clear {
   background: none;
   border: none;
@@ -261,6 +270,44 @@ nav a.active { background: var(--accent); }
   transition: color 0.15s;
 }
 .search-clear:hover { color: #f5f0e8; }
+.search-tag-row {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.search-tag-row::-webkit-scrollbar { display: none; }
+.search-tag-divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(255,255,255,0.12);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+.search-tag-btn {
+  background: none;
+  border: none;
+  color: var(--paper2);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.search-tag-btn:hover { opacity: 1; color: #fff; }
+.search-tag-btn.active { opacity: 1; color: #fff; }
+.search-tag-btn.tag-region.active { color: var(--accent2); }
+.search-tag-btn.tag-conflict.active { color: var(--accent); }
 mark.search-hit {
   background: var(--accent);
   color: #fff;
@@ -548,6 +595,22 @@ mark.search-hit {
   color: var(--dim);
   border-radius: 1px;
 }
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 14px;
+}
+.post-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border: 1px solid var(--rule);
+  color: var(--dim2);
+  border-radius: 1px;
+  text-transform: uppercase;
+}
 
 /* Stats */
 .stat-row {
@@ -808,15 +871,39 @@ footer {
     <a href="#geolocation" onclick="filterPosts('geolocation',this)">Geolocation</a>
     <a href="#about-section" onclick="return true">About</a>
   </div>
-  <button class="nav-search-btn" id="search-toggle" onclick="toggleSearchDropdown()" title="Search dispatches">⌕</button>
+  <button class="nav-search-btn" id="search-toggle" onclick="toggleSearchDropdown()" title="Search & filter dispatches">
+    <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.4"/>
+      <line x1="8.7" y1="8.7" x2="11" y2="11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="15" y1="3" x2="21" y2="3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="15" y1="7" x2="21" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="15" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+  </button>
   <div class="search-dropdown" id="search-dropdown">
-    <div class="search-dropdown-bg"><canvas id="search-lava-canvas"></canvas></div>
-    <span class="search-dropdown-icon" onclick="commitSearch()" style="cursor:pointer" title="Search">⌕</span>
-    <input type="text" id="search-input" placeholder="SEARCH DISPATCHES..." onkeydown="if(event.key==='Enter')commitSearch()" oninput="onSearchType(this.value)" autocomplete="off" spellcheck="false">
-    <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
+    <div class="search-input-row">
+      <div class="search-dropdown-bg"><canvas id="search-lava-canvas"></canvas></div>
+      <span class="search-dropdown-icon" onclick="commitSearch()" style="cursor:pointer" title="Search">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="5.5" cy="5.5" r="4.2" stroke="currentColor" stroke-width="1.3"/>
+          <line x1="8.7" y1="8.7" x2="12" y2="12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <input type="text" id="search-input" placeholder="SEARCH DISPATCHES..." onkeydown="if(event.key==='Enter')commitSearch()" oninput="onSearchType(this.value)" onfocus="moveCursorToEnd(this)" autocomplete="off" spellcheck="false">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
+    </div>
+    <div class="search-tag-row">
+      <button class="search-tag-btn active" onclick="filterTag('all', this)">All</button>
+      <span class="search-tag-divider"></span>
+      <button class="search-tag-btn tag-region" onclick="filterTag('Middle East', this)">Middle East</button>
+      <button class="search-tag-btn tag-region" onclick="filterTag('Europe', this)">Europe</button>
+      <button class="search-tag-btn tag-region" onclick="filterTag('Americas', this)">Americas</button>
+      <span class="search-tag-divider"></span>
+      <button class="search-tag-btn tag-conflict" onclick="filterTag('Iran', this)">Iran</button>
+      <button class="search-tag-btn tag-conflict" onclick="filterTag('Ukraine', this)">Ukraine</button>
+    </div>
   </div>
 </nav>
-
 <div class="site-wrap">
   <div class="content-grid">
 
@@ -937,9 +1024,31 @@ footer {
 // =========== DATA ===========
 let posts = [
   {
+    id: 31,
+    category: 'analysis',
+    confidence: 'high',
+    tags: ['Iran', 'Ukraine', 'Europe'],
+    date: '06 Mar 2026, 22:30 UTC',
+    title: 'Ukraine\'s offer to help defend against Iranian drones misses what the US is actually doing',
+    deck: 'Kyiv has offered interceptor specialists and anti-drone munitions to US-allied Gulf states. The offer is well-intentioned and the expertise is real. But it is being offered to a conflict where the US has already chosen a different doctrine — one Ukraine cannot pursue.',
+    body: `Ukraine's government confirmed this week it has offered anti-drone specialists and interceptor munitions to Gulf states struggling with Iranian Shahed barrages and ballistic missile strikes. The framing from Kyiv is logical: Ukraine has built, through three years of sustained combat, arguably the most effective drone interception network in the world, and the drones Iran is deploying here are directly derived from — and in some respects inferior to — the Russian Shahed-series variants Ukraine has been shooting down at scale. If any military understands how to defend against this specific threat cheaply and effectively, it is Ukraine.\n\nThe problem with that framing is what it assumes about the US. Ukraine's anti-drone methodology is not a secret. It is not even particularly proprietary. Ukrainian officials and defence industry representatives have presented the layered interception model in detail at DSEI, Eurosatory, MSPO, and other international defence fairs — covering kill-chain architecture, acoustic and optical detection integration, the economics of preferencing cheap gun-based effectors and EW jammers over expensive SAM rounds for low-value targets. The specific systems Ukraine uses — ZSU-23 for close-in work, drone-on-drone intercept for swarms, tiered detection networks across oblasts — are documented in publicly available analysis and open-source military reporting. More to the point, Ukraine has been running this experiment in real combat with NATO advisors embedded, NATO intelligence flowing continuously, and NATO nations supplying the systems being tested. Germany supplied IRIS-T. The UK supplied ASRAAM. France supplied SAMP/T. The US supplied NASAMS and HIMARS-cued targeting data. Every contributor receives direct operational feedback. The Pentagon does not need Ukrainian specialists to explain how Shaheds are being shot down. It knows. It helped design the approach, funded portions of it, and has been receiving reports on its performance for three years. If US installations in Bahrain and Qatar are taking hits, it is not because the US lacks knowledge of the Ukrainian playbook.\n\nWhat it does lack is the geographic and political precondition that makes the Ukrainian model work in the first place. Ukraine is a single sovereign state. Its oblasts share a unified command structure, a single military communications network, and an unambiguous common interest in intercepting every incoming drone. When a Shahed crosses from Romanian airspace heading northeast, detection nodes in Odesa, Mykolaiv, and Kherson are already sharing a track and queuing intercept assets across one kill chain. The Gulf region has none of that. Iranian missiles and drones transit Iraqi airspace, cross into Syrian or Jordanian or Saudi airspace, cover hundreds of kilometres across multiple sovereign territories before reaching their targets. None of these states share a unified air picture. They operate different command systems, different IFF protocols, different national rules of engagement. The interoperability problem is not theoretical — a Kuwaiti fighter acting on its own national command authority engaged and shot down three US aircraft in a friendly-fire incident earlier this week. That happened between formal US allies, in an active theatre, in 2026. The notion of building a Ukrainian-style unified intercept network across this same collection of actors, in the middle of an ongoing conflict, is not a question of funding or intent. The command architecture does not exist. It cannot be assembled in weeks. Ukraine also has the advantage of a predictable threat vector — Russian drones come from the north, northeast, and east, from known territory. Iranian weapons can arrive across a wide arc, from Yemen, from Iraq, from Iran directly, with entry points that vary by target. Early warning windows are shorter, the intercept handoff between disconnected national systems creates exploitable seams, and a pre-programmed cruise flight path does not need Iranian command involvement to navigate them.\n\nThe deeper point is that the US military has not been passive in response to this problem. It has made a deliberate choice to solve it differently. Rather than building a dense, cheap terminal-defence layer — the Ukrainian approach, which is fundamentally defensive, adopted by a country that cannot strike back into Russia without catastrophic escalation — the US has pursued offensive launcher suppression. Strike the launchers before they fire. Degrade the reload infrastructure. Reduce the volume at source. CENTCOM has reported an 86% reduction in Iranian ballistic missile launches relative to day one of the conflict. That figure reflects launcher destruction, not improved interception. Fewer missiles are being fired because fewer launchers remain operational — not because the intercept layer has become more capable. The USS Gerald R. Ford's repositioning from a defensive station off the Israeli coast to the Red Sea is the physical expression of this doctrine. The carrier is not being moved to intercept more drones. It is being moved to destroy more launchers.\n\nThe economics of that choice also matter. A Shahed costs approximately $20,000 to manufacture. An SM-2 round costs around $2.1 million. An SM-6 costs more. Burning high-end interceptors against cheap kamikaze drones is a sustainable tactic for days or weeks, not months — and the US and its Gulf partners have the financial depth to sustain it in the near term without the deficit becoming immediately critical. But the long-run arithmetic does not favour the defensive end of that exchange ratio if the conflict extends and the launcher suppression campaign stalls. Rubio has publicly acknowledged that Iran produces roughly 100 ballistic missiles per month while the US builds six to seven high-end interceptors in the same period. THAAD batteries consumed approximately a quarter of their available rounds in the June 2025 twelve-day exchange. SM-3 stocks are assessed as critically low. These numbers do not become comfortable just because GCC states can afford to spend rounds in the short term. They become a genuine constraint if the suppression rate falters and the launch volume recovers.\n\nFor Ukraine, this conflict cuts in two directions simultaneously. Zelensky confirmed on 5 March that over 800 Patriot interceptors had been expended in the first three days of the Iran war alone — more than Ukraine has received from all Western suppliers combined across four years of war. That figure landed in Kyiv like a gut punch. Russia has used more than 57,000 Shahed-type drones against Ukraine since 2022, and Ukraine has built its entire air defence doctrine around intercepting them cheaply and at scale precisely because the expensive Western missiles were never coming in the quantities needed. Watching hundreds of those missiles get burned in seventy-two hours in a different theatre is not an abstract strategic concern — it is a direct threat to Ukraine's delivery pipeline as production slots tighten and US prioritisation shifts. Zelensky was pointed about it, in his careful way. He told Bloomberg that a long Iran war "will affect the amount of air defences for us," and his formal statement on sending specialists was notably transactional: "Ukraine helps partners who help ensure our security and protect the lives of our people." He had already told Gulf leaders in an earlier statement that he would send Ukraine's best drone interceptors — on the condition that they press Putin for a one-month ceasefire. That offer was politely not taken up. The Ukraine war meanwhile grinds into its fifth year at a standstill, Russian forces escalating around Kramatorsk, peace talks in Abu Dhabi displaced by the very conflict Ukraine is now being asked to help manage. Kyiv is not desperate in the sense of being broken — the Ukrainian commander-in-chief reported in February that Ukrainian forces retook more ground than Russia seized for the first time since the Kursk offensive. But Zelensky is acutely aware that the world's attention, its interceptor production, and its political bandwidth have all just rotated away from his war. Offering specialists to the Gulf is partly genuine, partly leverage, and partly a way of staying visible in a week when Ukraine dropped off the front page entirely.\n\nUkraine's offer is not cynical. For Gulf states that sit outside the US command structure, protecting civilian infrastructure with acoustic detection networks, ZSU-23 systems, and cheap EW jammers is a real and applicable capability — and Ukrainian specialists would add genuine value in those contexts. But the offer as directed at the US military addresses a gap the US has consciously chosen to approach from the other end. The Pentagon already knows how the Ukrainian model works. It chose the other lever. Whether that choice holds depends entirely on whether the 86% launch reduction figure is sustained as Iran disperses its remaining launcher infrastructure and reconstitutes. If the suppression rate holds, the doctrine is vindicated. If it degrades, the Gulf's fragmented, non-interoperable air defence architecture will be left absorbing a renewed barrage it was never designed to handle alone — and Ukrainian specialists, by that point, will have had no meaningful time to change anything that matters.`,
+    note: 'The 86% launch reduction figure from CENTCOM is the key number to track — it is the primary evidence that the offensive suppression doctrine is working. If that figure degrades over the coming days as Iran reconstitutes and disperses launchers, the defensive deficit becomes acute fast. The friendly-fire incident involving the Kuwaiti fighter is the clearest single illustration of the interoperability problem — it should not be treated as an anomaly. It is a symptom of a structural command architecture problem that no amount of Ukrainian expertise resolves. The Ukrainian offer is worth watching for what Gulf states do with it independent of US operations — smaller Gulf militaries protecting civilian infrastructure have a real use case for the cheap end of the Ukrainian toolkit.',
+    sources: [
+      { platform: 'official', handle: 'Kyiv Independent — Ukraine\'s offer of anti-drone specialists, Zelensky statement', quote: 'Ukraine helps partners who help ensure our security and protect the lives of our people.', timestamp: '05 Mar 2026', url: 'https://kyivindependent.com/ukraines-air-defense-expertise-irreplaceable-zelensky-says-as-war-escalates-in-middle-east/' },
+      { platform: 'official', handle: 'CEPA — 800 Patriot interceptors in three days, more than Ukraine received in four years', quote: 'Over 800 of the missiles were reportedly used in just three days of fighting, Zelenskyy said on March 5, more than Ukraine has received in total from its Western suppliers during four years of war.', timestamp: '06 Mar 2026', url: 'https://cepa.org/article/the-iran-war-peril-and-opportunity-for-ukraine/' },
+      { platform: 'official', handle: 'Al Jazeera — Zelensky on Patriot depletion, Russia amassing drones', quote: 'Some 800 guided missiles have been used to repel Iranian aerial attacks within just three days. Ukraine has never had this many missiles to repel attacks.', timestamp: '06 Mar 2026', url: 'https://www.aljazeera.com/news/2026/3/6/amid-iran-war-will-russia-exploit-ukraines-shortage-of-patriot-missiles' },
+      { platform: 'official', handle: 'Novaya Gazeta Europe — Zelensky Bloomberg interview, ceasefire condition on Gulf offer', quote: 'I would suggest the following: leaders of the Middle East have great relations with Russians. They can ask Russians to implement a month-long ceasefire.', timestamp: '03 Mar 2026', url: 'https://novayagazeta.eu/amp/articles/2026/03/03/long-war-in-iran-could-disrupt-us-supply-of-air-defence-systems-to-ukraine-zelensky-warns-en-news' },
+      { platform: 'official', handle: 'CENTCOM — 86% reduction in Iranian ballistic missile launches', quote: 'Iranian ballistic missile launches are down 86% from day one of the conflict, attributed to US and allied strikes on launcher infrastructure.', timestamp: '06 Mar 2026', url: 'https://www.centcom.mil' },
+      { platform: 'official', handle: 'Reuters — Rubio on interceptor production deficit', quote: 'Iran produces approximately 100 ballistic missiles per month. The US builds six to seven high-end interceptors in the same period.', timestamp: '05 Mar 2026', url: 'https://www.reuters.com' },
+      { platform: 'official', handle: 'USNI News — USS Gerald R. Ford Red Sea repositioning', quote: 'The Ford carrier strike group has repositioned to the Red Sea, shifting from a defensive posture off the Israeli coast to an offensive posture closer to Iranian and Houthi launcher concentrations.', timestamp: '06 Mar 2026', url: 'https://news.usni.org' },
+      { platform: 'official', handle: 'Defense Security Monitor — THAAD and SM-3 stock levels', quote: 'THAAD batteries consumed approximately 25% of available interceptors during the June 2025 twelve-day conflict. SM-3 stockpiles are assessed as critically low across the theatre.', timestamp: '05 Mar 2026', url: 'https://dsm.forecastinternational.com' },
+    ]
+  },
+  {
     id: 13,
     category: 'strike',
     confidence: 'medium',
+    tags: ['Iran', 'Middle East', 'Europe'],
     date: '01 Mar 2026, 23:30 UTC',
     title: 'Strike report: RAF Akrotiri hit — explosions at base hours after Starmer authorises use of UK facilities for strikes on Iran',
     deck: 'Two Iranian ballistic missiles were fired toward Cyprus on 1 March and intercepted over the Mediterranean. Hours later, explosions struck RAF Akrotiri itself — suspected Shahed drone impact. The timing follows Starmer\'s authorisation of US strikes from UK soil.',
@@ -957,6 +1066,7 @@ let posts = [
     id: 3,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '28 Feb 2026, 13:45 UTC',
     title: 'Pattern analysis: Iran\'s retaliatory targeting follows 2024 playbook with expanded Gulf scope',
     deck: 'Iran\'s missile and drone strikes on US regional bases represent a clear escalation beyond anything seen in the 2024 operations — confirmed by state-level sources and on-the-ground footage.',
@@ -974,6 +1084,7 @@ let posts = [
     id: 4,
     category: 'strike',
     confidence: 'medium',
+    tags: ['Iran', 'Middle East'],
     date: '28 Feb 2026, ~18:00 UTC',
     title: 'Dubai: Fairmont The Palm on fire, DXB shut, Burj Khalifa evacuated — Burj Al Arab reports unconfirmed',
     deck: 'Fire at Fairmont The Palm from intercept debris. Dubai International Airport closed by official order. Burj Khalifa evacuated as precaution. Unconfirmed reports of Burj Al Arab being struck.',
@@ -990,6 +1101,7 @@ let posts = [
     id: 5,
     category: 'geolocation',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '28 Feb 2026, 15:00 UTC',
     title: 'Geolocation: NSA Bahrain strike — impact point identified as AN/GSC-52 SATCOM terminal at 26.207097, 50.610061',
     deck: 'Three footage angles of the NSA Bahrain strike cross-referenced against satellite imagery and street-level mapping place the impact at a geostationary satellite earth station antenna within the base perimeter — identified as an AN/GSC-52 SATCOM terminal.',
@@ -1005,6 +1117,7 @@ let posts = [
     id: 7,
     category: 'geolocation',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '28 Feb 2026, 16:30 UTC',
     title: 'Geolocation: Era View tower drone strike — 37-floor residential block was not the target',
     deck: 'Footage of an Iranian Shahed drone striking the Era View residential tower in Hoora has been geolocated to 26.22819, 50.59832. Flight path analysis places NSA Bahrain directly on the drone\'s heading — the building appears to have been an unintended obstruction, not the target.',
@@ -1020,6 +1133,7 @@ let posts = [
     id: 6,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '28 Feb 2026, 19:30 UTC',
     title: 'Operation Epic Fury / Lion\'s Roar: what the targeting list reveals about US and Israeli objectives',
     deck: 'Trump has confirmed Khamenei\'s death. The IDF says 30 senior leaders were targeted in the opening strikes. Reading the target set — leadership, nuclear programme, missile infrastructure, IRGC command — reveals an operation designed around regime change, not coercion.',
@@ -1039,6 +1153,7 @@ let posts = [
     id: 9,
     category: 'strike',
     confidence: 'medium',
+    tags: ['Iran', 'Middle East'],
     date: '01 Mar 2026, 14:00 UTC',
     title: 'Strike report: Iran hits Camp de la Paix — France\'s Abu Dhabi naval base struck despite Paris opposing the operation',
     deck: 'Iranian drone and/or missile strike on Camp de la Paix (IMFEAU), the French naval air station at Mina Zayed Port, Abu Dhabi. France explicitly did not support Operation Epic Fury — making this one of the more politically complex target choices of the day.',
@@ -1053,6 +1168,7 @@ let posts = [
     id: 10,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '01 Mar 2026, 14:20 UTC',
     title: 'Araghchi\'s Oman explanation is the most important signal of the day — Iranian military units are acting without central command',
     deck: 'Iran\'s Foreign Minister has explained the strikes on Qatar and Oman as actions Iran did not order — with Oman specifically described as outside their intent. On the second day after the decapitation strikes, this points to a hollowed-out command structure operating on pre-issued general orders with no one at the top to countermand them.',
@@ -1068,6 +1184,7 @@ let posts = [
     id: 11,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '01 Mar 2026, 16:00 UTC',
     title: 'Iran struck a vessel from its own shadow fleet in the Strait of Hormuz',
     deck: 'The Palau-flagged tanker Skylight — a known Iranian shadow fleet asset under US sanctions — was struck by Iranian forces in the Strait of Hormuz. Iranian state media confirmed the attack and justified it. This is not a simple misidentification error. It is something more structurally interesting.',
@@ -1084,6 +1201,7 @@ let posts = [
     id: 12,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '01 Mar 2026, 23:00 UTC',
     title: 'How long will Operation Epic Fury last — and what are the real constraints on Trump?',
     deck: 'The opening phase of Operation Epic Fury has delivered significant military results. However the operation\'s future is less certain, constrained by domestic politics, economic exposure, and the absence of any visible endgame plan.',
@@ -1101,6 +1219,7 @@ let posts = [
     id: 14,
     category: 'strike',
     confidence: 'high',
+    tags: ['Iran', 'Middle East'],
     date: '02 Mar 2026, 00:30 UTC',
     title: 'Strike report: Hezbollah enters the conflict — missiles fired into northern Israel as IDF prepares response into Lebanon',
     deck: 'Hezbollah has opened fire on northern Israel for the first time since the start of Operation Epic Fury. Sirens active across the north. Civilians in southern Lebanon moving. IDF strikes incoming.',
@@ -1117,6 +1236,7 @@ let posts = [
     id: 15,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Europe'],
     date: '02 Mar 2026, 00:40 UTC',
     title: 'Macron orders France\'s first nuclear expansion in three decades, with Washington\'s attention elsewhere',
     deck: 'France will increase its nuclear warhead stockpile for the first time since 1992 and offer to forward-station nuclear-capable aircraft among eight European allies. Macron refused to say by how much — and announced France will stop disclosing arsenal figures altogether. The announcement landed on the same day US forces are in active operations in Iran, leaving Europe\'s security architecture without its primary guarantor.',
@@ -1134,6 +1254,7 @@ let posts = [
     id: 16,
     category: 'analysis',
     confidence: 'high',
+    tags: ['Iran', 'Europe'],
     date: '02 Mar 2026, 12:40 UTC',
     title: 'IAEA chief: no structured nuclear weapons programme detected in Iran',
     deck: 'Rafael Grossi told a Vienna press conference this morning that the IAEA has found no evidence of a structured Iranian nuclear weapons programme. Trump cited exactly that concern as part of his justification for launching Epic Fury four days ago.',
@@ -1149,6 +1270,7 @@ let posts = [
   id: 17,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East', 'Europe'],
   date: '03 Mar 2026, 14:00 UTC',
   title: 'Trump threatens to cut all trade with Spain over base access',
   deck: 'At a White House event today Trump said he has instructed his trade representative to cut all dealings with Spain after Madrid refused to allow the US to use its bases for the Iran operation. He then added the US could use those bases regardless.',
@@ -1165,6 +1287,7 @@ let posts = [
   id: 18,
   category: 'strike',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '04 Mar 2026, 13:40 UTC',
   title: 'Iran fires ballistic missile toward Incirlik — intercepted by NATO over the Eastern Mediterranean',
   deck: 'A ballistic missile fired from Iran was tracked crossing Iraqi and Syrian airspace before NATO air defence systems destroyed it as it approached Türkiye. The assessed target was Incirlik Air Base, which hosts US nuclear weapons and approximately 6,000 NATO personnel. Türkiye had been the last major US-allied host nation not struck.',
@@ -1183,6 +1306,7 @@ let posts = [
   id: 19,
   category: 'strike',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '04 Mar 2026, 15:00 UTC',
   title: 'US submarine sinks Iranian frigate IRIS Dena off Sri Lanka — first torpedo kill since World War II',
   deck: 'A US Navy fast attack submarine sank the Iranian frigate IRIS Dena with a single Mk-48 torpedo in international waters approximately 20 nautical miles south of Galle, Sri Lanka. At least 80 crew are confirmed dead, 101 missing, 32 rescued from a crew of 180. Pete Hegseth confirmed the attack, calling it "quiet death."',
@@ -1200,6 +1324,7 @@ let posts = [
   id: 20,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East', 'Europe'],
   date: '04 Mar 2026, 15:30 UTC',
   title: 'Hormuz traffic down 81%. Qatar\'s LNG plant is offline for a month. The economic cost of the operation is now running ahead of its military timeline.',
   deck: 'Vessel transits through the Strait of Hormuz have fallen 81% since Epic Fury began. War risk insurance expires for the entire corridor at midnight on 5 March. QatarEnergy — which supplies a fifth of global LNG — has halted production and declared force majeure after Iranian drone strikes on Ras Laffan. Restart will take two weeks. Full production levels, another two weeks after that.',
@@ -1219,6 +1344,7 @@ let posts = [
   id: 21,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East', 'Europe'],
   date: '04 Mar 2026, 10:00 UTC',
   title: 'France deploys Charles de Gaulle to the Mediterranean. British, French and Jordanian jets are already shooting down Iranian missiles.',
   deck: 'Macron announced on 3 March that the Charles de Gaulle carrier strike group is being rerouted from the North Atlantic to the eastern Mediterranean. The deployment comes as RAF F-35Bs, RAF Typhoons, French Rafales and Jordanian jets are already engaged in active air defence operations across the region — raising pointed questions about what European non-participation actually means at this point.',
@@ -1236,6 +1362,7 @@ let posts = [
   id: 22,
   category: 'analysis',
   confidence: 'medium',
+    tags: ['Iran', 'Middle East'],
   date: '04 Mar 2026, 16:20 UTC',
   title: 'B-2 bombers are expected at Diego Garcia this week. What that changes.',
   deck: 'Reports indicate B-2 Spirit stealth bombers will forward-deploy to Diego Garcia in the British Indian Ocean Territory within days. The B-2s have been flying global strike sorties from Whiteman, Missouri — a 30-plus hour round trip. Forward staging at Diego Garcia cuts that dramatically and opens up a sustained bombing tempo that continuous home-base operations cannot sustain.',
@@ -1252,6 +1379,7 @@ let posts = [
   id: 23,
   category: 'strike',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '04 Mar 2026, 17:20 UTC',
   title: 'Fresh barrage hits Erbil as Iraq\'s national power grid goes dark',
   deck: 'A new wave of missiles and drones has struck Erbil, with hits recorded around the international airport and the adjacent US military position at Harir Air Base. Iraq\'s Ministry of Electricity has confirmed a full national grid shutdown. The blackout is being attributed to Iran cutting gas supplies to Iraqi power stations — a separate but simultaneous pressure point on a country that is already, in its foreign minister\'s words, a "victim of this war."',
@@ -1270,6 +1398,7 @@ let posts = [
   id: 24,
   category: 'strike',
   confidence: 'high',
+    tags: ['Iran', 'Middle East', 'Europe'],
   date: '05 Mar 2026, 13:00 UTC',
   title: 'Iran strikes Azerbaijan\'s Nakhchivan exclave. Aliyev calls it an act of terror. Azeri army on full combat readiness.',
   deck: 'Two Iranian drones struck Azerbaijan\'s Nakhchivan Autonomous Republic around midday on 5 March. One hit the terminal building of Nakhchivan International Airport. A second fell near a school in the village of Shakarabad. Two civilians were injured. Azerbaijan has summoned the Iranian ambassador, brought its army to full combat readiness, and reserved the right to respond. Iran denies responsibility.',
@@ -1289,6 +1418,7 @@ let posts = [
   id: 25,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '05 Mar 2026, 14:30 UTC',
   title: 'Is a ground invasion coming? The case for, the case against, and why the Kurdish question is the hinge.',
   deck: 'Trump and Hegseth have both refused to rule out boots on the ground. US-Israeli strikes in western Iran have systematically targeted security infrastructure in Kurdish areas. The CIA is confirmed to be in discussions about arming Kurdish forces for an uprising. A ground invasion to achieve regime change is militarily logical, politically toxic, and depends on a population that has every reason to distrust the country asking for its help.',
@@ -1308,6 +1438,7 @@ let posts = [
   id: 26,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East', 'Europe'],
   date: '05 Mar 2026, 15:05 UTC',
   title: 'Azerbaijan closes its southern airspace for operational reasons. The last safe corridor just got narrower.',
   deck: 'Following the Iranian drone strike on Nakhchivan airport and Aliyev placing the army on full combat readiness, Azerbaijan has closed the southern sector of Baku FIR citing operational reasons. The timing is not routine. Azerbaijan had become the primary transit corridor for global aviation rerouting around the collapsed Gulf airspace. That route is now partially compromised.',
@@ -1324,6 +1455,7 @@ let posts = [
   id: 27,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Americas'],
   date: '06 Mar 2026, 15:00 UTC',
   title: 'Trump says Cuba is going to fall. The groundwork is already laid. The question is how.',
   deck: 'In a CNN interview this morning Trump said Cuba "is gonna fall pretty soon," credited himself for cutting off Venezuelan oil — Cuba\'s sole energy source — and said he\'ll send Rubio to close the deal. Cuba\'s western half blacked out on Wednesday. Jet fuel is unavailable at nine airports until mid-March. The regime is negotiating through back channels. Iran isn\'t finished yet, but Cuba is being run in parallel.',
@@ -1341,6 +1473,7 @@ let posts = [
   id: 28,
   category: 'geolocation',
   confidence: 'medium',
+    tags: ['Iran', 'Middle East'],
   date: '06 Mar 2026, 16:00 UTC',
   title: 'Geolocation: Israeli strike in Beirut\'s Nahr district, building immediately south of Al Nasr Group tower',
   deck: 'Footage from @englishabuali shows a strike in Beirut\'s Nahr district. Cross-referencing the Al Nasr Group construction tower visible in frame against Google Maps Street View confirms the camera position and places the strike on the building block immediately south of the tower. The specific target remains unconfirmed.',
@@ -1355,6 +1488,7 @@ let posts = [
   id: 29,
   category: 'strike',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '06 Mar 2026, 20:30 UTC',
   title: 'US Apache helicopters strike PMF checkpoints in Mosul. Nineveh province hit across multiple positions.',
   deck: 'US Army Apache gunships engaged PMF positions in northern Mosul on the evening of 6 March, striking a joint checkpoint held by Kata\'ib Sayyid al-Shuhada and the Badr Organisation\'s 34th Brigade. Residents reported 14 explosions in four waves. Separately, four PMF sites across Nineveh province were struck. It is the latest in a sustained campaign against Iranian-backed Iraqi militias running since 28 February.',
@@ -1373,6 +1507,7 @@ let posts = [
   id: 30,
   category: 'analysis',
   confidence: 'high',
+    tags: ['Iran', 'Middle East'],
   date: '06 Mar 2026, 21:00 UTC',
   title: 'The Gerald Ford is in the Red Sea. That is not a defensive posture.',
   deck: 'Pentagon photos confirmed the USS Gerald R. Ford transited the Suez Canal on 5 March, moving from its defensive position off Haifa into the Red Sea. Chinese satellite imagery had tracked the carrier\'s entire transit. The move places the Ford closer to Iran, closer to Yemen, and signals a shift from intercepting Iranian salvos to threatening the launchers themselves. The Houthis have still not entered the war. Both facts are connected.',
@@ -1395,6 +1530,7 @@ let nextId = posts.length + 1;
 
 // =========== RENDER POSTS ===========
 let currentFilter = 'all';
+let currentTag = 'all';
 let currentSearch = '';
 let committedSearch = '';
 
@@ -1407,6 +1543,11 @@ function highlight(text, query) {
 function renderPosts(filter = 'all', query = '') {
   const feed = document.getElementById('post-feed');
   let filtered = filter === 'all' ? posts : posts.filter(p => p.category === filter);
+
+  // apply tag filter
+  if (currentTag !== 'all') {
+    filtered = filtered.filter(p => p.tags && p.tags.includes(currentTag));
+  }
   const activeQuery = query.trim().length >= 2 ? query.trim() : '';
 
   if (activeQuery) {
@@ -1468,6 +1609,10 @@ function renderPosts(filter = 'all', query = '') {
         </div>
       </div>` : '';
 
+    const tagsHtml = p.tags && p.tags.length
+      ? `<div class="post-tags">${p.tags.map(t => `<span class="post-tag">${t}</span>`).join('')}</div>`
+      : '';
+
     return `
     <article class="post" id="post-${p.id}" style="animation-delay:${i * 0.06}s">
       <div class="post-meta-top">
@@ -1480,6 +1625,7 @@ function renderPosts(filter = 'all', query = '') {
       <div class="post-body">${bodyHtml}</div>
       ${noteHtml}
       ${sourcesHtml}
+      ${tagsHtml}
     </article>`;
   }).join('');
 
@@ -1508,6 +1654,7 @@ function updateRecent() {
 // =========== FILTER ===========
 function filterPosts(cat, el) {
   currentFilter = cat;
+  currentTag = 'all';
   currentSearch = '';
   committedSearch = '';
   const input = document.getElementById('search-input');
@@ -1516,8 +1663,33 @@ function filterPosts(cat, el) {
   if (clearBtn) clearBtn.style.display = 'none';
   document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
   if (el) el.classList.add('active');
+  // reset tag bar
+  document.querySelectorAll('.search-tag-btn').forEach(b => b.classList.remove('active'));
+  const allTagBtn = document.querySelector('.search-tag-btn');
+  if (allTagBtn) allTagBtn.classList.add('active');
   renderPosts(cat, '');
   return false;
+}
+
+function filterTag(tag, el) {
+  currentTag = tag;
+  currentSearch = '';
+  committedSearch = '';
+  const input = document.getElementById('search-input');
+  if (input) { input.value = ''; }
+  const clearBtn = document.getElementById('search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  // reset tag bar active state
+  document.querySelectorAll('.search-tag-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // if tag filter active, reset category to all
+  if (tag !== 'all') {
+    currentFilter = 'all';
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    const allNavLink = document.querySelector('nav a');
+    if (allNavLink) allNavLink.classList.add('active');
+  }
+  renderPosts(currentFilter, '');
 }
 
 function toggleSearchDropdown() {
@@ -1528,11 +1700,11 @@ function toggleSearchDropdown() {
   if (isOpen) {
     setTimeout(() => document.getElementById('search-input').focus(), 320);
     setTimeout(() => {
-      document.addEventListener('click', outsideSearchClose);
+      document.addEventListener('mousedown', outsideSearchClose);
     }, 10);
   } else {
     closeSearchBar();
-    document.removeEventListener('click', outsideSearchClose);
+    document.removeEventListener('mousedown', outsideSearchClose);
   }
 }
 
@@ -1540,11 +1712,17 @@ function outsideSearchClose(e) {
   const dropdown = document.getElementById('search-dropdown');
   const btn = document.getElementById('search-toggle');
   if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-    // close the bar but KEEP committed search results in feed
     dropdown.classList.remove('open');
     btn.classList.remove('active');
-    document.removeEventListener('click', outsideSearchClose);
+    document.removeEventListener('mousedown', outsideSearchClose);
   }
+}
+
+function moveCursorToEnd(input) {
+  const len = input.value.length;
+  requestAnimationFrame(() => {
+    input.setSelectionRange(len, len);
+  });
 }
 
 function onSearchType(value) {
@@ -1564,7 +1742,7 @@ function commitSearch() {
   const btn = document.getElementById('search-toggle');
   if (dropdown) dropdown.classList.remove('open');
   if (btn) btn.classList.remove('active');
-  document.removeEventListener('click', outsideSearchClose);
+  document.removeEventListener('mousedown', outsideSearchClose);
   // render with results — they stay until explicitly cleared
   renderPosts(currentFilter, value);
 }
@@ -1588,7 +1766,7 @@ function clearSearch() {
   const btn = document.getElementById('search-toggle');
   if (dropdown) dropdown.classList.remove('open');
   if (btn) btn.classList.remove('active');
-  document.removeEventListener('click', outsideSearchClose);
+  document.removeEventListener('mousedown', outsideSearchClose);
   renderPosts(currentFilter, '');
 }
 
@@ -1821,13 +1999,15 @@ renderPosts('all');
     mouseX = -1;
   }
 
-  // Mouse enters dropdown — fade in
+  // Mouse moves — track only over the input row for gradient
   document.addEventListener('mousemove', function(e) {
     const dropdown = document.getElementById('search-dropdown');
     if (!dropdown || !dropdown.classList.contains('open')) return;
     const canvas = document.getElementById('search-lava-canvas');
     if (!canvas || !canvas._ctx) return;
-    const rect = dropdown.getBoundingClientRect();
+    const inputRow = dropdown.querySelector('.search-input-row');
+    if (!inputRow) return;
+    const rect = inputRow.getBoundingClientRect();
     if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
       mouseX = e.clientX;
       if (currentX < 0) currentX = mouseX;
@@ -1840,7 +2020,7 @@ renderPosts('all');
     }
   });
 
-  // Mouse leaves dropdown — fade out
+  // Mouse leaves input row — fade out
   document.addEventListener('mouseleave', function(e) {
     targetOpacity = 0;
   }, true);
@@ -1850,7 +2030,9 @@ renderPosts('all');
     if (!dropdown || !dropdown.classList.contains('open')) return;
     const canvas = document.getElementById('search-lava-canvas');
     if (!canvas || !canvas._ctx) return;
-    const rect = dropdown.getBoundingClientRect();
+    const inputRow = dropdown.querySelector('.search-input-row');
+    if (!inputRow) return;
+    const rect = inputRow.getBoundingClientRect();
     if (e.clientY < rect.top || e.clientY > rect.bottom) {
       if (targetOpacity !== 0) {
         targetOpacity = 0;
