@@ -1048,13 +1048,13 @@ footer {
     gap: 5px;
     font-size: 7.5px;
     letter-spacing: 1px;
-    padding-top: 14px;
-    padding-bottom: 14px;
+    padding-top: 12px;
+    padding-bottom: 12px;
     margin-bottom: 0;
   }
   .meta-desktop { display: none !important; }
-  .masthead-meta-row1 { display: flex; align-items: center; gap: 16px; }
-  .masthead-meta-row2 { display: flex; justify-content: center; opacity: 0.55; letter-spacing: 1.5px; }
+  .masthead-meta-row1 { display: flex; align-items: center; gap: 20px; justify-content: center; }
+  .masthead-meta-row2 { display: none !important; }
 
   /* ---- NAV: keep all five buttons, smaller ---- */
   .nav-links { display: flex; flex: 1; }
@@ -1076,10 +1076,10 @@ footer {
   .nav-search-btn { padding: 0 10px; margin-right: 4px; color: rgba(255,255,255,0.85); }
   .nav-search-btn svg { width: 16px; height: 10px; }
 
-  /* ---- SEARCH DROPDOWN: fixed to viewport so no page bleed-through ---- */
+  /* ---- SEARCH DROPDOWN: absolute under nav, scrollable panel ---- */
   .search-dropdown {
-    position: fixed;
-    top: var(--nav-bottom, 40px);
+    position: absolute;
+    top: 100%;
     left: 0;
     right: 0;
   }
@@ -1089,6 +1089,16 @@ footer {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* full-screen backdrop that sits behind dropdown and blocks page interaction */
+  #search-backdrop {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 198;
+    background: transparent;
+    touch-action: none;
+  }
+  #search-backdrop.open { display: block; }
   /* add divider below search input row */
   .search-input-row {
     border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -1306,6 +1316,8 @@ footer {
     </div>
   </div>
 </div>
+
+<div id="search-backdrop"></div>
 
 <nav style="position:relative">
   <div class="nav-links">
@@ -2762,28 +2774,19 @@ function filterTag(tag, el) {
 function toggleSearchDropdown() {
   const dropdown = document.getElementById('search-dropdown');
   const btn = document.getElementById('search-toggle');
+  const backdrop = document.getElementById('search-backdrop');
   // read state BEFORE toggling so button tap always inverts correctly
   const wasOpen = dropdown.classList.contains('open');
 
   if (wasOpen) {
     closeSearchBar();
     document.removeEventListener('mousedown', outsideSearchClose);
-    if (document._dispatchBodyLock) {
-      document.removeEventListener('touchmove', document._dispatchBodyLock);
-      document._dispatchBodyLock = null;
-    }
   } else {
     dropdown.classList.add('open');
     btn.classList.add('active');
+    if (backdrop && window.innerWidth <= 520) backdrop.classList.add('open');
     if (!('ontouchstart' in window)) {
       setTimeout(() => document.getElementById('search-input').focus(), 320);
-    }
-    // on mobile: block touchmove on the page behind the dropdown
-    if (window.innerWidth <= 520) {
-      document._dispatchBodyLock = function(e) {
-        if (!dropdown.contains(e.target)) e.preventDefault();
-      };
-      document.addEventListener('touchmove', document._dispatchBodyLock, { passive: false });
     }
     // delay so this tap event doesn't immediately trigger outsideSearchClose
     setTimeout(() => {
@@ -2795,14 +2798,12 @@ function toggleSearchDropdown() {
 function outsideSearchClose(e) {
   const dropdown = document.getElementById('search-dropdown');
   const btn = document.getElementById('search-toggle');
+  const backdrop = document.getElementById('search-backdrop');
   if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
     dropdown.classList.remove('open');
     btn.classList.remove('active');
+    if (backdrop) backdrop.classList.remove('open');
     document.removeEventListener('mousedown', outsideSearchClose);
-    if (document._dispatchBodyLock) {
-      document.removeEventListener('touchmove', document._dispatchBodyLock);
-      document._dispatchBodyLock = null;
-    }
   }
 }
 
@@ -2843,12 +2844,10 @@ function closeSearchBar() {
   // close bar only, preserves committed results
   const dropdown = document.getElementById('search-dropdown');
   const btn = document.getElementById('search-toggle');
+  const backdrop = document.getElementById('search-backdrop');
   if (dropdown) dropdown.classList.remove('open');
   if (btn) btn.classList.remove('active');
-  if (document._dispatchBodyLock) {
-    document.removeEventListener('touchmove', document._dispatchBodyLock);
-    document._dispatchBodyLock = null;
-  }
+  if (backdrop) backdrop.classList.remove('open');
 }
 
 function clearSearch() {
