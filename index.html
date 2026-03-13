@@ -1039,30 +1039,27 @@ footer {
   .top-bar-center { display: none; }
 
   /* ---- MASTHEAD ---- */
-  .masthead { padding: 28px 16px 20px; }
-  .masthead-rule { margin-bottom: 20px; }
-  .masthead-label { margin-bottom: 18px; }
-  .masthead-title { font-size: 42px; margin-bottom: 22px; }
+  .masthead { padding: 32px 16px 0; }
+  .masthead-rule { margin-bottom: 22px; }
+  .masthead-label { margin-bottom: 20px; }
+  .masthead-title { font-size: 56px; margin-bottom: 28px; }
   .masthead-meta {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     gap: 0;
     font-size: 7.5px;
     letter-spacing: 1px;
     flex-wrap: nowrap;
-    justify-content: space-between;
     align-items: center;
-    padding-left: 4px;
-    padding-right: 4px;
-    padding-top: 16px;
-    padding-bottom: 10px;
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 14px;
+    padding-bottom: 14px;
     margin-bottom: 0;
   }
-  /* center the middle item exactly */
-  .masthead-meta span:nth-child(2) {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .masthead { position: relative; }
+  .masthead-meta span:nth-child(1) { justify-content: flex-start; }
+  .masthead-meta span:nth-child(2) { justify-content: center; }
+  .masthead-meta span:nth-child(3) { justify-content: flex-end; }
 
   /* ---- NAV: keep all five buttons, smaller ---- */
   .nav-links { display: flex; flex: 1; }
@@ -1165,7 +1162,7 @@ footer {
     font-style: italic;
   }
   .mobile-search-method {
-    padding: 10px 18px 24px;
+    padding: 10px 18px 48px;
   }
   .mobile-search-method-label {
     font-family: var(--mono);
@@ -1283,7 +1280,7 @@ footer {
 <div class="top-bar">
   <span>Sultan Aben · Independent Researcher</span>
   <span class="top-bar-center"></span>
-  <span id="live-clock" style="font-size:10px"></span>
+  <span id="live-clock"></span>
 </div>
 
 <div class="masthead">
@@ -1361,7 +1358,7 @@ footer {
         <button class="search-tag-btn-m tag-region" onclick="filterTagMobile('Africa', this)">Africa</button>
       </div>
       <div class="mobile-search-tags-single">
-        <div class="mobile-search-section-label">Actor</div>
+        <div class="mobile-search-section-label">Theatres</div>
         <button class="search-tag-btn-m tag-conflict" onclick="filterTagMobile('Iran', this)">Iran</button>
         <button class="search-tag-btn-m tag-conflict" onclick="filterTagMobile('Ukraine', this)">Ukraine</button>
       </div>
@@ -2756,12 +2753,23 @@ function toggleSearchDropdown() {
     if (!('ontouchstart' in window)) {
       setTimeout(() => document.getElementById('search-input').focus(), 320);
     }
+    // lock body scroll on mobile so dropdown is the only scrollable thing
+    if (window.innerWidth <= 520) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    }
     setTimeout(() => {
       document.addEventListener('mousedown', outsideSearchClose);
+      document.addEventListener('touchstart', outsideSearchClose);
     }, 10);
   } else {
     closeSearchBar();
     document.removeEventListener('mousedown', outsideSearchClose);
+    document.removeEventListener('touchstart', outsideSearchClose);
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
   }
 }
 
@@ -2772,6 +2780,10 @@ function outsideSearchClose(e) {
     dropdown.classList.remove('open');
     btn.classList.remove('active');
     document.removeEventListener('mousedown', outsideSearchClose);
+    document.removeEventListener('touchstart', outsideSearchClose);
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
   }
 }
 
@@ -2814,6 +2826,9 @@ function closeSearchBar() {
   const btn = document.getElementById('search-toggle');
   if (dropdown) dropdown.classList.remove('open');
   if (btn) btn.classList.remove('active');
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
 }
 
 function clearSearch() {
@@ -3102,13 +3117,16 @@ function toggleSidebar() {
   arrow.textContent = isOpen ? '▴' : '▾';
 }
 function filterTagMobile(tag, el) {
-  // sync with desktop filterTag
-  filterTag(tag, null);
-  // update mobile button active states
+  // update mobile button active states immediately so user sees selection
   document.querySelectorAll('.search-tag-btn-m').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
-  // close the dropdown on mobile after selection
-  setTimeout(() => closeSearchBar(), 120);
+  // short delay so highlight is visible before closing and rendering
+  setTimeout(() => {
+    filterTag(tag, null);
+    closeSearchBar();
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+  }, 500);
 }
 
 function applyMobileLayout() {
