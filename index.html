@@ -1039,26 +1039,37 @@ footer {
   .top-bar-center { display: none; }
 
   /* ---- MASTHEAD ---- */
-  .masthead { padding: 22px 16px 22px; }
-  .masthead-title { font-size: 42px; margin-bottom: 14px; }
+  .masthead { padding: 28px 16px 20px; }
+  .masthead-rule { margin-bottom: 20px; }
+  .masthead-label { margin-bottom: 18px; }
+  .masthead-title { font-size: 42px; margin-bottom: 22px; }
   .masthead-meta {
     gap: 0;
-    font-size: 8px;
-    letter-spacing: 1.2px;
+    font-size: 7.5px;
+    letter-spacing: 1px;
     flex-wrap: nowrap;
     justify-content: space-between;
+    align-items: center;
     padding-left: 4px;
     padding-right: 4px;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
+    padding-top: 16px;
+    padding-bottom: 10px;
+    margin-bottom: 0;
   }
+  /* center the middle item exactly */
+  .masthead-meta span:nth-child(2) {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .masthead { position: relative; }
 
   /* ---- NAV: keep all five buttons, smaller ---- */
   .nav-links { display: flex; flex: 1; }
   .nav-hamburger { display: none !important; }
   .nav-mobile-menu { display: none !important; }
   nav a {
-    padding: 11px 0;
+    padding: 14px 0;
     font-size: 7.5px;
     letter-spacing: 0.5px;
     flex: 1;
@@ -1066,8 +1077,8 @@ footer {
     text-align: center;
   }
   nav a:first-child { border-left: 1px solid rgba(255,255,255,0.08); }
-  /* shrink search icon to match reduced nav text */
-  .nav-search-btn { padding: 0 10px; margin-right: 4px; }
+  /* search icon: smaller, full white */
+  .nav-search-btn { padding: 0 10px; margin-right: 4px; color: rgba(255,255,255,0.85); }
   .nav-search-btn svg { width: 16px; height: 10px; }
 
   /* ---- SEARCH DROPDOWN: tall mobile panel ---- */
@@ -1133,7 +1144,7 @@ footer {
   .mobile-search-divider {
     height: 1px;
     background: rgba(255,255,255,0.12);
-    margin: 20px 18px 0;
+    margin: 10px 18px 0;
   }
   .mobile-search-about {
     padding: 20px 18px 6px;
@@ -1288,11 +1299,11 @@ footer {
 
 <nav style="position:relative">
   <div class="nav-links">
-    <a href="#all" class="active" onclick="filterPosts('all',this)">All</a>
-    <a href="#analysis" onclick="filterPosts('analysis',this)">Analysis</a>
-    <a href="#strike" onclick="filterPosts('strike',this)">Strikes</a>
-    <a href="#conflict" onclick="filterPosts('conflict',this)">Conflict</a>
-    <a href="#geolocation" onclick="filterPosts('geolocation',this)">Geolocation</a>
+    <a href="#" class="active" onclick="filterPosts('all',this);return false;">All</a>
+    <a href="#" onclick="filterPosts('analysis',this);return false;">Analysis</a>
+    <a href="#" onclick="filterPosts('strike',this);return false;">Strikes</a>
+    <a href="#" onclick="filterPosts('conflict',this);return false;">Conflict</a>
+    <a href="#" onclick="filterPosts('geolocation',this);return false;">Geolocation</a>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileMenu()" style="display:none">
     <span class="nav-hamburger-icon" id="nav-hamburger-icon">☰</span>
@@ -3096,6 +3107,8 @@ function filterTagMobile(tag, el) {
   // update mobile button active states
   document.querySelectorAll('.search-tag-btn-m').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  // close the dropdown on mobile after selection
+  setTimeout(() => closeSearchBar(), 120);
 }
 
 function applyMobileLayout() {
