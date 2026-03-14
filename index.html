@@ -1229,7 +1229,10 @@ footer {
     opacity: 0.8;
   }
   .post-confidence { margin-left: auto; }
-  .post-footer { flex-wrap: wrap; }
+  .post-footer { flex-wrap: wrap; align-items: flex-start; }
+  .post-footer > div { max-width: 58%; }
+  .post-footer .post-tags { max-width: 100%; }
+  .post-footer .share-icon-card { align-self: flex-start; margin-top: 3px; }
 
   /* ---- SIDEBAR: collapsible ---- */
   .sidebar { padding: 0; border-top: 1px solid var(--rule); border-left: none; }
@@ -1273,6 +1276,8 @@ footer {
 <body>
 
 <!-- =========== ARTICLE MODAL =========== -->
+<div id="mobile-article-page" style="display:none; position:fixed; inset:0; z-index:400; background:var(--paper); overflow-y:auto; -webkit-overflow-scrolling:touch;"></div>
+
 <div id="article-page">
   <div id="article-page-backdrop" onclick="closeArticlePage()">
     <canvas id="modal-lava-canvas"></canvas>
@@ -3184,6 +3189,12 @@ function slugify(title) {
 }
 
 function openArticlePage(id) {
+  // On mobile, navigate to a full page instead of modal
+  if (window.innerWidth <= 520) {
+    history.pushState({ postId: id }, '', '?post=' + id);
+    renderMobileArticlePage(id);
+    return;
+  }
   const p = posts.find(x => x.id === id);
   if (!p) return;
 
@@ -3251,6 +3262,112 @@ function openArticlePage(id) {
   setTimeout(() => window.startModalLava && window.startModalLava(), 280);
 }
 
+function renderMobileArticlePage(id) {
+  const p = posts.find(x => x.id === id);
+  if (!p) return;
+
+  const catLabel = { strike: 'STRIKE REPORT', geolocation: 'GEOLOCATION', analysis: 'ANALYSIS', breaking: '● BREAKING', conflict: 'CONFLICT REPORT' }[p.category] || p.category.toUpperCase();
+  const confLabel = { high: '◆ HIGH CONFIDENCE', medium: '◇ MEDIUM CONFIDENCE', low: '○ LOW CONFIDENCE' }[p.confidence] || '';
+  const catClass = { analysis: 'analysis', geolocation: 'geo', breaking: 'breaking', conflict: 'conflict' }[p.category] || '';
+  const confClass = { high: 'conf-high', medium: 'conf-med', low: 'conf-low' }[p.confidence] || '';
+  const catColor = { analysis: 'var(--gold)', strike: 'var(--accent)', geolocation: 'var(--accent2)', breaking: 'var(--accent)', conflict: '#5a7a4a' }[p.category] || 'var(--gold)';
+
+  const bodyHtml = p.body.split('\n\n').map(para => para.startsWith('<') ? para : `<p>${para}</p>`).join('');
+  const noteHtml = p.note ? `<div class="analyst-note" style="margin-top:28px">${p.note}</div>` : '';
+  const tagsHtml = p.tags && p.tags.length ? `<div class="post-tags">${p.tags.map(t => `<span class="post-tag">${t}</span>`).join('')}</div>` : '';
+  const tagsCopyRow = `<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:20px;gap:12px;"><div style="display:flex;flex-wrap:wrap;gap:6px;max-width:52%;">${tagsHtml ? p.tags.map(t=>`<span class="post-tag">${t}</span>`).join('') : ''}</div><button class="article-page-share" onclick="copyMobileArticleLink()" style="flex-shrink:0;align-self:flex-start;margin:0 !important;padding:6px 12px;line-height:1;display:inline-flex;align-items:center;">⧉ COPY LINK</button></div>`;
+  const sourcesHtml = p.sources && p.sources.length ? `
+    <div class="sources-toggle open" onclick="toggleSources(this)" style="margin-top:24px">
+      <span class="sources-toggle-label">
+        <span class="sources-toggle-icon">▼</span>
+        Sources <span class="sources-count">(${p.sources.length})</span>
+      </span>
+    </div>
+    <div class="sources-collapsible open">
+      <div class="sources-grid">
+        ${p.sources.map(s => `
+          <div class="source-card ${s.platform}">
+            <span class="source-platform ${s.platform}">${s.platform.toUpperCase()}</span>
+            <div class="source-content">
+              <div class="source-handle">${s.handle}</div>
+              <div class="source-quote">"${s.quote}"</div>
+              ${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" class="source-url">↗ ${s.url}</a>` : ''}
+            </div>
+            <div class="source-timestamp">${s.timestamp}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
+
+  // Build a clock string for top bar
+  const now = new Date();
+  const clockStr = now.toUTCString().replace('GMT','UTC').slice(5,25);
+
+  const page = document.getElementById('mobile-article-page');
+  page.innerHTML = `
+    <div class="top-bar" style="justify-content:center;">
+      <span id="map-clock">${clockStr}</span>
+    </div>
+    <div class="masthead" style="cursor:pointer;" onclick="closeMobileArticlePage()">
+      <div class="masthead-rule"></div>
+      <div class="masthead-label">Sultan Aben — Independent Researcher</div>
+      <div class="masthead-title">DISPATCH</div>
+    </div>
+    <nav style="position:relative;">
+      <div style="flex:1; display:flex; align-items:center; padding:0 16px;">
+        <button onclick="closeMobileArticlePage()" style="background:none;border:none;color:rgba(255,255,255,0.7);font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;padding:14px 0;">← BACK TO DISPATCHES</button>
+      </div>
+    </nav>
+    <div style="background:var(--paper); padding:28px 24px 28px; border-top:3px solid ${catColor};">
+      <div class="article-page-masthead">
+        <span class="post-category ${catClass}">${catLabel}</span>
+        <span class="post-date">${p.date}</span>
+        <span class="post-confidence ${confClass}">${confLabel}</span>
+      </div>
+      <h1 class="article-page-title">${p.title}</h1>
+      <div class="post-deck">${p.deck}</div>
+      <div class="article-page-body">${bodyHtml}</div>
+      ${noteHtml}
+      ${sourcesHtml}
+      ${tagsCopyRow}
+    </div>
+    <footer>
+      <div class="footer-title">DISPATCH</div>
+      <div class="footer-sub">Sultan Aben — Independent Researcher</div>
+      <p class="footer-disclaimer">All material is for research and documentation purposes. Sources are cited directly. Confidence ratings reflect the analyst's assessment of corroboration quality.</p>
+    </footer>
+  `;
+  page.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  page.scrollTop = 0;
+  document.getElementById('article-page').classList.remove('visible');
+
+  // Keep clock ticking
+  const mapClockEl = document.getElementById('map-clock');
+  if (mapClockEl) {
+    const interval = setInterval(() => {
+      if (!document.getElementById('map-clock')) { clearInterval(interval); return; }
+      const n = new Date();
+      document.getElementById('map-clock').textContent = n.toUTCString().replace('GMT','UTC').slice(5,25);
+    }, 1000);
+  }
+}
+
+function closeMobileArticlePage() {
+  const page = document.getElementById('mobile-article-page');
+  page.style.display = 'none';
+  page.innerHTML = '';
+  document.body.style.overflow = '';
+  history.pushState(null, '', window.location.pathname);
+}
+
+function copyMobileArticleLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.querySelector('#mobile-article-page .article-page-share');
+    if (btn) { btn.textContent = '⧉ COPIED'; setTimeout(() => { btn.textContent = '⧉ COPY LINK'; }, 2000); }
+  });
+}
+
 function closeArticlePage() {
   const modal = document.getElementById('article-page');
   const inner = modal.querySelector('.article-page-inner');
@@ -3292,6 +3409,14 @@ function copyPostLink(id, el) {
 }
 
 window.addEventListener('popstate', (e) => {
+  // Close mobile article page if open
+  const mobilePage = document.getElementById('mobile-article-page');
+  if (mobilePage && mobilePage.style.display === 'block') {
+    mobilePage.style.display = 'none';
+    mobilePage.innerHTML = '';
+    document.body.style.overflow = '';
+    return;
+  }
   if (e.state && e.state.postId) {
     openArticlePage(e.state.postId);
   } else {
